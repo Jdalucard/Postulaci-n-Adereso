@@ -1,0 +1,154 @@
+.App {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  color: #333;
+}
+
+h1 {
+  color: #646cff;
+  margin-bottom: 2rem;
+}
+
+.challenge-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.challenge-container p {
+  color: #333;
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+h2 {
+  color: #535bf2;
+  margin-top: 1rem;
+}
+
+.data-section {
+  background-color: #f0f0f0;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.data-section h2 {
+  color: #444;
+  font-size: 1.2em;
+  margin-bottom: 0.5rem;
+}
+
+.data-section p {
+  margin: 0.3rem 0;
+  color: #555;
+}
+
+.solution-container {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.solution-value {
+  font-size: 2em;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 20px 0;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.response {
+  display: block;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.response.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.response.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  margin: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.error {
+  color: #dc3545;
+  margin: 10px 0;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
