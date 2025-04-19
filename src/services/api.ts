@@ -108,7 +108,7 @@ class RequestQueue {
   private queue: (() => Promise<any>)[] = [];
   private processing = false;
   private lastRequestTime = 0;
-  private readonly minDelay = 3000; // Aumentado a 5 segundos entre peticiones
+  private readonly minDelay = 3000; // Aumentado a 3 segundos entre peticiones
 
   async add<T>(request: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
