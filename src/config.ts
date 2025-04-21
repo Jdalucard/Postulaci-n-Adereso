@@ -1,8 +1,8 @@
 export const CONFIG = {
   API: {
     BASE_URL: '/api',
-    SWAPI_URL: 'https://swapi.tech/api',
-    POKEMON_URL: 'https://pokeapi.co/api/v2/pokemon?limit=100000',
+    SWAPI_URL: 'https://swapi.py4e.com/api/',
+    POKEMON_URL: 'https://pokeapi.co/api/v2/pokemon?limit=1302',
     OPENAI_URL: 'https://recruiting.adere.so/chat_completion',
     AUTH_TOKEN: 'd1e864e2-cad4-4b10-b6be-49755d7175fc',
     TIMEOUT: 10000, // 10 seconds

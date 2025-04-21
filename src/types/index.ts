@@ -1,26 +1,16 @@
-export interface ChallengeResponse {
-  id: string;
-  problem: string;
-  expression: string;
-  solution: number;
- 
-}
-
-export interface SolutionResponse {
-  success: boolean;
-  message: string;
-}
-
-export interface StarWarsPlanet {
+export interface Planet {
+  uid: string;
   name: string;
   rotation_period: number;
   orbital_period: number;
   diameter: number;
   surface_water: number;
   population: number;
+  url: string;
 }
 
-export interface StarWarsCharacter {
+export interface People {
+  uid: string;
   name: string;
   height: number;
   mass: number;
@@ -32,4 +22,25 @@ export interface Pokemon {
   base_experience: number;
   height: number;
   weight: number;
+}
+
+export interface StarWarsPlanetResponse {
+  results: Planet[];
+}
+
+export interface StarWarsPeopleResponse {
+  results: People[];
+}
+
+export interface PokemonResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Pokemon[];
+}
+
+export interface Challenge {
+  problem: string;
+  solution: number;
+  id: string;
 } 
