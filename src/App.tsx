@@ -4,6 +4,7 @@ import {
   getStarWarsDataPlanets,
   getStarWarsDataPeople,
   getPokemonData,
+  submitSolution,
 } from "./services/api";
 import { OpenAIService } from "./services/openaiService";
 
@@ -26,6 +27,7 @@ interface Challenge {
 function App() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [solution, setSolution] = useState<number | null>(null);
+  const [submissionResponse, setSubmissionResponse] = useState<{ success: boolean; message: string } | null>(null);
   const [starWarsDataPlanets, setStarWarsDataPlanets] =
     useState<StarWarsPlanetResponse | null>(null);
   const [starWarsDataPeople, setStarWarsDataPeople] =
@@ -44,18 +46,16 @@ function App() {
       setLoading((prev) => ({ ...prev, planets: true }));
       setError(null);
 
-      // Cargar planetas primero
+      //carga de datos en secuencia
+
       const planetsData = await getStarWarsDataPlanets();
       setStarWarsDataPlanets(planetsData);
       setLoading((prev) => ({ ...prev, planets: false }));
 
-      // Luego cargar personajes
       setLoading((prev) => ({ ...prev, pokemon: true }));
       const pokemonData = await getPokemonData();
       setPokemonData(pokemonData);
       setLoading((prev) => ({ ...prev, pokemon: false }));
-
-      // Finalmente cargar Pokémon
 
       setLoading((prev) => ({ ...prev, people: true }));
       const peopleData = await getStarWarsDataPeople();
@@ -103,9 +103,9 @@ function App() {
           const result = await OpenAIService.interpretProblem(challenge, {
             planets: starWarsDataPlanets,
             people: starWarsDataPeople,
-            pokemon: pokemonData
+            pokemon: pokemonData,
           });
-          
+
           console.log("🔥 OpenAI Response:", result);
           setSolution(result.answer);
         } catch (error) {
@@ -122,19 +122,48 @@ function App() {
     // Limpiar estados anteriores
     setChallenge(null);
     setSolution(null);
+    setSubmissionResponse(null);
     setStarWarsDataPlanets(null);
     setStarWarsDataPeople(null);
     setPokemonData(null);
     setError(null);
-    
-    setLoading(prev => ({ ...prev, all: true }));
+
+    setLoading((prev) => ({ ...prev, all: true }));
     try {
       await fetchAllData();
     } catch (error) {
       setError("Error al cargar los datos");
       console.error("❌ Error:", error);
     } finally {
-      setLoading(prev => ({ ...prev, all: false }));
+      setLoading((prev) => ({ ...prev, all: false }));
+    }
+  };
+
+  const handleSubmitSolution = async () => {
+    if (!challenge || solution === null) {
+      setSubmissionResponse({
+        success: false,
+        message: "No hay solución para enviar",
+      });
+      return;
+    }
+
+    const requestBody = {
+      problem_id: challenge.id,
+      answer: solution
+    };
+    
+    console.log("🔥 JSON enviado:", JSON.stringify(requestBody, null, 2));
+
+    try {
+      const response = await submitSolution(challenge.id, solution);
+      setSubmissionResponse(response);
+    } catch (error) {
+      setSubmissionResponse({
+        success: false,
+        message: "Error al enviar la solución",
+      });
+      console.error("❌ Error:", error);
     }
   };
 
@@ -174,72 +203,30 @@ function App() {
       <div className="data-grid-container">
         <div className="data-section">
           <h2>Id:</h2>
-          <p className="problem">{challenge?.id ?? 'No disponible'}</p>
+          <p className="problem">{challenge?.id ?? "No disponible"}</p>
           <hr />
           <h2>Solución:</h2>
-          <p className="solution">{solution ?? 'Cargando...'}</p>
+          <p className="solution">{solution ?? "Cargando..."}</p>
+          
+          {solution !== null && (
+            <button
+              onClick={handleSubmitSolution}
+              disabled={!challenge || solution === null}
+              className="submit-button"
+            >
+              Enviar Solución
+            </button>
+          )}
+          
+          {submissionResponse && (
+            <div className={`response ${submissionResponse.success ? 'success' : 'error'}`}>
+              {submissionResponse.message}
+            </div>
+          )}
         </div>
       </div>
-
-  {/*     <div className="data-grid-container">
-        {starWarsDataPeople && (
-          <div className="data-section">
-            <h2>Personajes de Star Wars</h2>
-            <div className="data-grid">
-              {starWarsDataPeople.results.map((person: People) => (
-                <div key={person.uid} className="data-card">
-                  <h3>{person.name}</h3>
-                  <p>Altura: {person.height} cm</p>
-                  <p>Peso: {person.mass} kg</p>
-                  <p>
-                    Planeta Natal:{" "}
-                    {starWarsDataPlanets?.results.find(
-                      (planet) => planet.url === person.homeworld
-                    )?.name || "Desconocido"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {starWarsDataPlanets && (
-          <div className="data-section">
-            <h2>Planetas de Star Wars</h2>
-            <div className="data-grid">
-              {starWarsDataPlanets.results.map((planet: Planet) => (
-                <div key={planet.uid} className="data-card">
-                  <h3>{planet.name}</h3>
-                  <p>Período de Rotación: {planet.rotation_period} horas</p>
-                  <p>Período Orbital: {planet.orbital_period} días</p>
-                  <p>Diámetro: {planet.diameter} km</p>
-                  <p>Agua Superficial: {planet.surface_water}%</p>
-                  <p>Población: {planet.population}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {pokemonData && (
-          <div className="data-section">
-            <h2>Pokémon</h2>
-            <div className="data-grid">
-              {pokemonData.results.map((pokemon: Pokemon) => (
-                <div key={pokemon.name} className="data-card">
-                  <h3>{pokemon.name}</h3>
-                  <p>Experiencia Base: {pokemon.base_experience}</p>
-                  <p>Altura: {pokemon.height} dm</p>
-                  <p>Peso: {pokemon.weight} hg</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div> */}
     </div>
   );
 }
 
 export default App;
-
