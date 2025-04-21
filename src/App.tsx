@@ -98,20 +98,36 @@ function App() {
       console.log("🔥 People Data:", starWarsDataPeople.results);
       console.log("🔥 Pokemon Data:", pokemonData.results);
 
-      OpenAIService.interpretProblem(challenge, {
-        planets: starWarsDataPlanets,
-        people: starWarsDataPeople,
-        pokemon: pokemonData
-      }).then(result => {
-        console.log("🔥 OpenAI Response:", result);
-        setSolution(result.answer);
-      });
+      const processSolution = async () => {
+        try {
+          const result = await OpenAIService.interpretProblem(challenge, {
+            planets: starWarsDataPlanets,
+            people: starWarsDataPeople,
+            pokemon: pokemonData
+          });
+          
+          console.log("🔥 OpenAI Response:", result);
+          setSolution(result.answer);
+        } catch (error) {
+          console.error("Error procesando la solución:", error);
+          setError("Error al procesar la solución");
+        }
+      };
+
+      processSolution();
     }
   }, [challenge, starWarsDataPlanets, starWarsDataPeople, pokemonData]);
 
   const handleGetData = async () => {
-    setLoading(prev => ({ ...prev, all: true }));
+    // Limpiar estados anteriores
+    setChallenge(null);
+    setSolution(null);
+    setStarWarsDataPlanets(null);
+    setStarWarsDataPeople(null);
+    setPokemonData(null);
     setError(null);
+    
+    setLoading(prev => ({ ...prev, all: true }));
     try {
       await fetchAllData();
     } catch (error) {
