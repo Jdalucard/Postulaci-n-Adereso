@@ -38,6 +38,7 @@ function App() {
     people: false,
     pokemon: false,
     challenge: false,
+    submit: false,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -148,22 +149,26 @@ function App() {
       return;
     }
 
-    const requestBody = {
-      problem_id: challenge.id,
-      answer: solution
-    };
-    
-    console.log("🔥 JSON enviado:", JSON.stringify(requestBody, null, 2));
-
     try {
+      setLoading((prev) => ({ ...prev, submit: true }));
+      
+      const requestBody = {
+        problem_id: challenge.id,
+        answer: solution
+      };
+      
+      console.log("🔥 JSON enviado:", JSON.stringify(requestBody, null, 2));
+
       const response = await submitSolution(challenge.id, solution);
       setSubmissionResponse(response);
     } catch (error) {
+      console.error("❌ Error al enviar la solución:", error);
       setSubmissionResponse({
         success: false,
-        message: "Error al enviar la solución",
+        message: error instanceof Error ? error.message : "Error al enviar la solución",
       });
-      console.error("❌ Error:", error);
+    } finally {
+      setLoading((prev) => ({ ...prev, submit: false }));
     }
   };
 
@@ -211,10 +216,10 @@ function App() {
           {solution !== null && (
             <button
               onClick={handleSubmitSolution}
-              disabled={!challenge || solution === null}
+              disabled={!challenge || solution === null || loading.submit}
               className="submit-button"
             >
-              Enviar Solución
+              {loading.submit ? "Enviando..." : "Enviar Solución"}
             </button>
           )}
           

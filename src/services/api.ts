@@ -148,18 +148,11 @@ export const submitSolution = async (
   problemId: string,
   answer: number
 ): Promise<SolutionResponse> => {
-  if (answer === 0) {
-    return {
-      success: false,
-      message: "La solución no puede ser cero",
-    };
-  }
-
   return retryRequest(async () => {
     const response = await axiosInstance.post(
       `${CONFIG.API.BASE_URL}/challenge/solution`,
       {
-        problemId,
+        problem_id: problemId,
         answer,
       }
     );
@@ -184,7 +177,7 @@ export const chatCompletion = async (
 };
 
 export const getChallenge = async () => {
-  const response = await axiosInstance.get(`${CONFIG.API.BASE_URL}/challenge/test`);
+  const response = await axiosInstance.get(`${CONFIG.API.BASE_URL}/challenge/start`);
 
   return response.data;
 };
