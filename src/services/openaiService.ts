@@ -61,16 +61,33 @@ export class OpenAIService {
           Tu salida DEBE ser un objeto JSON válido con este formato exacto:
           {
             "reasoning": "explicación paso a paso de cómo llegaste al resultado final usando los datos del contexto",
-            "solution": número
+            "solution": número o null
           }
           
-          Importante:
-          - SOLO usa los datos proporcionados en el contexto.
-          - NO realices suposiciones ni cálculos que no estén justificados por los datos del contexto.
-          - Asegúrate de que el número en "solution" sea exactamente la respuesta final que se solicita en el problema.
-          - Si el problema pregunta por el peso de un Pokémon, responde con ese valor directamente del contexto. Si pregunta por un cálculo, haz solo ese cálculo con los datos disponibles.
-          - Si no puedes responder por falta de datos en el contexto, explica por qué y devuelve null en "solution".
-          - No incluyas ningún texto fuera del JSON.`,
+          Instrucciones específicas:
+          1. Lee cuidadosamente el problema y sigue EXACTAMENTE el orden de las operaciones descrito.
+          2. Para personajes de Star Wars:
+             - Busca el personaje por nombre exacto (case-insensitive)
+             - Usa el campo 'mass' para la masa
+             - Si la masa es 0 o no está definida, devuelve null como solución
+             - Si no encuentras el personaje, devuelve null como solución
+          3. Para Pokémon:
+             - Busca el Pokémon por nombre exacto (case-insensitive)
+             - Usa el campo 'weight' para el peso
+             - Usa el campo 'height' para la altura
+             - Usa el campo 'base_experience' para la experiencia base
+             - Si algún valor es 0 o no está definido, devuelve null como solución
+             - Si no encuentras el Pokémon, devuelve null como solución
+          4. Realiza los cálculos en el orden exacto que se describe en el problema.
+          5. NO redondees ningún resultado intermedio.
+          6. Mantén TODOS los decimales en cada paso del cálculo.
+          7. El resultado final DEBE estar redondeado a EXACTAMENTE 10 decimales.
+          8. Si el problema menciona "primero", "luego", "finalmente", etc., sigue ese orden exactamente.
+          9. Las unidades deben mantenerse como están en los datos, sin conversiones.
+          10. Si no puedes responder por falta de datos en el contexto, devuelve null como solución.
+          11. No incluyas ningún texto fuera del JSON.
+          12. La solución DEBE ser un número o null, nunca un mensaje de error.
+          13. IMPORTANTE: Todas las soluciones numéricas DEBEN estar redondeadas a EXACTAMENTE 10 decimales.`,
         },
         {
           role: "user",

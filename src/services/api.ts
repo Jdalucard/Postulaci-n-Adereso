@@ -185,6 +185,6 @@ export const chatCompletion = async (
 
 export const getChallenge = async () => {
   const response = await axiosInstance.get(`${CONFIG.API.BASE_URL}/challenge/test`);
-  console.log("🔥 Challenge:", response.data);
+
   return response.data;
 };

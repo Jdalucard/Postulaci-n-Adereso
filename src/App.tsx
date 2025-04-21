@@ -173,6 +173,9 @@ function App() {
 
       <div className="data-grid-container">
         <div className="data-section">
+          <h2>Id:</h2>
+          <p className="problem">{challenge?.id ?? 'No disponible'}</p>
+          <hr />
           <h2>Solución:</h2>
           <p className="solution">{solution ?? 'Cargando...'}</p>
         </div>
