@@ -8,6 +8,7 @@ import {
 } from "../types";
 
 import { CONFIG } from "../config";
+import { getFromCache, saveToCache } from "./cache";
 
 interface SolutionResponse {
   success: boolean;
@@ -21,8 +22,6 @@ interface OpenAIResponse {
     };
   }>;
 }
-
-
 
 interface ChatMessage {
   role: string;
@@ -57,7 +56,10 @@ interface SWAPIPerson {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const retryRequest = async <T>(request: () => Promise<T>, maxRetries = 3): Promise<T> => {
+const retryRequest = async <T>(
+  request: () => Promise<T>,
+  maxRetries = 3
+): Promise<T> => {
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await request();
@@ -66,11 +68,18 @@ const retryRequest = async <T>(request: () => Promise<T>, maxRetries = 3): Promi
       await delay(1000 * (i + 1));
     }
   }
-  throw new Error('Max retries reached');
+  throw new Error("Max retries reached");
 };
 
 export const getStarWarsDataPlanets =
   async (): Promise<StarWarsPlanetResponse> => {
+    // Try to get from cache first
+    const cachedData = getFromCache<StarWarsPlanetResponse>('planets');
+    if (cachedData) {
+      console.log("🔥 Using cached Planets Data");
+      return cachedData;
+    }
+
     let allPlanets: Planet[] = [];
     let nextUrl = `${CONFIG.API.SWAPI_URL}/planets`;
 
@@ -94,12 +103,21 @@ export const getStarWarsDataPlanets =
       }
     }
 
-    console.log("🔥 Planets Data:", allPlanets);
-    return { results: allPlanets };
+    const result = { results: allPlanets };
+    saveToCache('planets', result);
+    console.log("🔥 Fetched and cached Planets Data");
+    return result;
   };
 
 export const getStarWarsDataPeople =
   async (): Promise<StarWarsPeopleResponse> => {
+    // Try to get from cache first
+    const cachedData = getFromCache<StarWarsPeopleResponse>('people');
+    if (cachedData) {
+      console.log("🔥 Using cached People Data");
+      return cachedData;
+    }
+
     let allPeople: People[] = [];
     let nextUrl = `${CONFIG.API.SWAPI_URL}/people`;
 
@@ -120,27 +138,39 @@ export const getStarWarsDataPeople =
       }
     }
 
-    console.log("🔥 People Data:", allPeople);
-    return { results: allPeople };
+    const result = { results: allPeople };
+    saveToCache('people', result);
+    console.log("🔥 Fetched and cached People Data");
+    return result;
   };
 
 export const getPokemonData = async (): Promise<PokemonResponse> => {
+  // Try to get from cache first
+  const cachedData = getFromCache<PokemonResponse>('pokemon');
+  if (cachedData) {
+    console.log("🔥 Using cached Pokemon Data");
+    return cachedData;
+  }
+
   const response = await axios.get(`${CONFIG.API.POKEMON_URL}?limit=1302`);
   const pokemon = await Promise.all(
     response.data.results.map(async (pokemon: { url: string }) => {
-      await delay(1000); // 1 segundo entre peticiones
+      await delay(1000);
       const pokemonDetails = await axios.get(pokemon.url);
       return pokemonDetails.data;
     })
   );
 
-  console.log("🔥 Pokemon Data:", pokemon);
-  return {
+  const result = {
     count: response.data.count,
     next: response.data.next,
     previous: response.data.previous,
     results: pokemon,
   };
+
+  saveToCache('pokemon', result);
+  console.log("🔥 Fetched and cached Pokemon Data");
+  return result;
 };
 
 // Enviar respuesta de solución
@@ -177,7 +207,9 @@ export const chatCompletion = async (
 };
 
 export const getChallenge = async () => {
-  const response = await axiosInstance.get(`${CONFIG.API.BASE_URL}/challenge/start`);
+  const response = await axiosInstance.get(
+    `${CONFIG.API.BASE_URL}/challenge/test`
+  );
 
   return response.data;
 };

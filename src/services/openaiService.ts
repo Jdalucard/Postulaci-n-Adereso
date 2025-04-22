@@ -6,6 +6,71 @@ interface ChatMessage {
   content: string;
 }
 
+// Función para filtrar el contexto relevante basado en el problema
+const filterRelevantContext = (
+  problem: string,
+  planets: any[],
+  people: any[],
+  pokemons: any[]
+) => {
+  const problemLower = problem.toLowerCase();
+  
+  // Buscar nombres mencionados en el problema
+  const mentionedPlanets = planets.filter(p => 
+    problemLower.includes(p.nombre.toLowerCase())
+  );
+  
+  const mentionedPeople = people.filter(p => 
+    problemLower.includes(p.nombre.toLowerCase())
+  );
+  
+  const mentionedPokemons = pokemons.filter(p => 
+    problemLower.includes(p.nombre.toLowerCase())
+  );
+
+  return {
+    planets: mentionedPlanets.length > 0 ? mentionedPlanets : planets,
+    people: mentionedPeople.length > 0 ? mentionedPeople : people,
+    pokemons: mentionedPokemons.length > 0 ? mentionedPokemons : pokemons
+  };
+};
+
+// Función para convertir valores a números
+const convertToNumbers = (data: any[]) => {
+  return data.map(item => {
+    const converted = { ...item };
+    for (const key in converted) {
+      if (typeof converted[key] === 'string' && !isNaN(Number(converted[key]))) {
+        converted[key] = Number(converted[key]);
+      }
+    }
+    return converted;
+  });
+};
+
+// Función para limpiar y reparar JSON
+const cleanAndParseJSON = (content: string) => {
+  try {
+    // Primero intentar parsear directamente
+    return JSON.parse(content);
+  } catch (error) {
+    // Si falla, intentar limpiar y reparar
+    const cleanContent = content
+      .replace(/[\n\r]/g, '') // Eliminar saltos de línea
+      .replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":') // Añadir comillas a las claves
+      .replace(/:\s*'([^']*)'/g, ':"$1"') // Reemplazar comillas simples por dobles
+      .replace(/:\s*([^"',}\]]+)([,}\]])/g, ':"$1"$2') // Añadir comillas a valores sin comillas
+      .replace(/([{,])\s*([a-zA-Z0-9_]+)\s*=\s*([^,}\]]+)([,}\]])/g, '$1"$2":"$3"$4'); // Reparar formato clave=valor
+
+    try {
+      return JSON.parse(cleanContent);
+    } catch (retryError) {
+      console.error("🔥 Contenido que causó el error:", cleanContent);
+      throw new Error("No se pudo parsear la respuesta como JSON válido");
+    }
+  }
+};
+
 export class OpenAIService {
   static async interpretProblem(
     problem: { id: string; problem: string },
@@ -16,105 +81,119 @@ export class OpenAIService {
     }
   ) {
     try {
-      // Log del contexto para debugging
-      console.log("🔥 Contexto completo recibido:");
-      
-      // Extraer solo los campos relevantes de todos los datos
-      const planetas = context.planets.results.map(p => ({
+      // Limpiar el estado de la IA antes de cada nueva solicitud
+      const clearStateMessage: ChatMessage = {
+        role: "system",
+        content: "Por favor, olvida cualquier contexto o datos anteriores. Comenzaremos un nuevo problema desde cero."
+      };
+
+      // Extraer y convertir los datos
+      const planetas = convertToNumbers(context.planets.results.map(p => ({
         nombre: p.name,
         periodo_rotacion: p.rotation_period,
         periodo_orbital: p.orbital_period,
         diametro: p.diameter,
         agua_superficial: p.surface_water,
         poblacion: p.population
-      }));
+      })));
       
-      const personajes = context.people.results.map(p => ({
+      const personajes = convertToNumbers(context.people.results.map(p => ({
         nombre: p.name,
         altura: p.height,
         masa: p.mass,
         planeta_natal: p.homeworld
-      }));
+      })));
       
-      const pokemons = context.pokemon.results.map(p => ({
+      const pokemons = convertToNumbers(context.pokemon.results.map(p => ({
         nombre: p.name,
         altura: p.height,
         peso: p.weight,
         experiencia_base: p.base_experience
-      }));
+      })));
 
-      console.log("Planetas:", planetas);
-      console.log("Personajes:", personajes);
-      console.log("Pokémon:", pokemons);
+      // Filtrar contexto relevante
+      const relevantContext = filterRelevantContext(
+        problem.problem,
+        planetas,
+        personajes,
+        pokemons
+      );
+
+      console.log("🔥 Enviando datos a la IA:", {
+        planetas: relevantContext.planets.length,
+        personajes: relevantContext.people.length,
+        pokemons: relevantContext.pokemons.length
+      });
 
       const messages: ChatMessage[] = [
+        clearStateMessage,
         {
-          role: "developer",
-          content: `Eres un asistente experto en resolver problemas de razonamiento lógico y matemático.
-          Tu objetivo es analizar el enunciado del problema y responder directamente lo que se pregunta, utilizando SOLO los datos proporcionados en el contexto.
-
-          Contexto disponible:
-          - Planetas de Star Wars: ${JSON.stringify(planetas)}
-          - Personajes de Star Wars: ${JSON.stringify(personajes)}
-          - Pokémon: ${JSON.stringify(pokemons)}
-          
-          Tu salida DEBE ser un objeto JSON válido con este formato exacto:
-          {
-            "reasoning": "explicación paso a paso de cómo llegaste al resultado final usando los datos del contexto",
-            "solution": número o null
-          }
+          role: "system",
+          content: `Eres un asistente experto en razonamiento lógico y matemático. 
+          Tu objetivo es resolver problemas matemáticos usando SOLO los datos proporcionados.
+          Siempre responde con un objeto JSON válido que contenga:
+          - reasoning: explicación paso a paso de tu razonamiento
+          - solution: el resultado numérico final o null si no hay datos suficientes
           
           Instrucciones específicas:
-          1. Lee cuidadosamente el problema y sigue EXACTAMENTE el orden de las operaciones descrito.
-          2. Para personajes de Star Wars:
-             - Busca el personaje por nombre exacto (case-insensitive)
-             - Usa el campo 'mass' para la masa
-             - Si la masa es 0 o no está definida, devuelve null como solución
-             - Si no encuentras el personaje, devuelve null como solución
-          3. Para Pokémon:
-             - Busca el Pokémon por nombre exacto (case-insensitive)
-             - Usa el campo 'weight' para el peso
-             - Usa el campo 'height' para la altura
-             - Usa el campo 'base_experience' para la experiencia base
-             - Si algún valor es 0 o no está definido, devuelve null como solución
-             - Si no encuentras el Pokémon, devuelve null como solución
-          4. Realiza los cálculos en el orden exacto que se describe en el problema.
-          5. NO redondees ningún resultado intermedio.
-          6. Mantén TODOS los decimales en cada paso del cálculo.
-          7. El resultado final DEBE estar redondeado a EXACTAMENTE 10 decimales.
-          8. Si el problema menciona "primero", "luego", "finalmente", etc., sigue ese orden exactamente.
-          9. Las unidades deben mantenerse como están en los datos, sin conversiones.
-          10. Si no puedes responder por falta de datos en el contexto, devuelve null como solución.
-          11. No incluyas ningún texto fuera del JSON.
-          12. La solución DEBE ser un número o null, nunca un mensaje de error.
-          13. IMPORTANTE: Todas las soluciones numéricas DEBEN estar redondeadas a EXACTAMENTE 10 decimales.`,
+          1. Usa SOLO los datos proporcionados
+          2. Busca nombres exactos (ignorando mayúsculas/minúsculas)
+          3. Realiza cálculos en el orden exacto del problema
+          4. No redondees resultados intermedios
+          5. El resultado final debe tener 10 decimales
+          6. Si faltan datos, devuelve null
+          7. No incluyas texto fuera del JSON`
         },
         {
           role: "user",
-          content: `Problema: ${problem.problem}
-          
-          Por favor, analiza el problema y proporciona la solución numérica precisa usando SOLO los datos del contexto proporcionado.`,
+          content: `Ejemplo de respuesta correcta:
+          Problema: ¿Cuál es la altura del Pokémon llamado "pikachu"?
+          Respuesta esperada:
+          {
+            "reasoning": "Se busca 'pikachu' en la lista de Pokémon. Se encuentra su altura: 4.",
+            "solution": 4.0000000000
+          }`
         },
+        {
+          role: "user",
+          content: `Contexto disponible:
+          Planetas: ${JSON.stringify(relevantContext.planets)}
+          Personajes: ${JSON.stringify(relevantContext.people)}
+          Pokémon: ${JSON.stringify(relevantContext.pokemons)}`
+        },
+        {
+          role: "user",
+          content: `Problema: ${problem.problem}`
+        }
       ];
 
       const response = await chatCompletion(messages);
       const content = response.choices[0].message.content.trim();
 
-      console.log("OpenAI raw response:", content);
+      console.log("🔥 Respuesta recibida de la IA:", content);
 
-      const jsonMatch = content.match(/\{[\s\S]*?\}/);
-      if (!jsonMatch) {
-        throw new Error("No se encontró un objeto JSON válido en la respuesta");
+      // Intentar parsear la respuesta con manejo de errores mejorado
+      let parsed;
+      try {
+        const jsonStr = content.match(/\{[\s\S]*?\}/)?.[0];
+        if (!jsonStr) {
+          throw new Error("No se encontró un objeto JSON válido");
+        }
+        parsed = cleanAndParseJSON(jsonStr);
+      } catch (error) {
+        console.error("🔥 Error al parsear JSON:", error);
+        throw new Error("No se pudo parsear la respuesta como JSON válido");
       }
 
-      const jsonStr = jsonMatch[0];
-      const parsed = JSON.parse(jsonStr);
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error("La respuesta no es un objeto JSON válido");
+      }
 
       if (parsed.solution !== null && (typeof parsed.solution !== "number" || isNaN(parsed.solution))) {
         throw new Error("La solución debe ser un número válido o null si faltan datos");
       }
 
-      // Redondear la solución a 10 decimales si es un número decimal
+      // Redondear la solución a 10 decimales
       const roundedSolution = parsed.solution !== null ? 
         Math.round(parsed.solution * 10000000000) / 10000000000 : 
         null;
