@@ -1,9 +1,41 @@
 import { chatCompletion } from "./api";
-import { StarWarsPlanetResponse, StarWarsPeopleResponse, PokemonResponse } from "../types";
+import { StarWarsPlanetResponse, StarWarsPeopleResponse, PokemonResponse, Planet, People } from "../types";
 
 interface ChatMessage {
   role: string;
   content: string;
+}
+
+// Funciones auxiliares para sanear y validar datos
+
+function sanitizePlanets(planets: StarWarsPlanetResponse["results"]) {
+  return planets.map(p => ({
+    name: p.name,
+    rotation_period: Number(p.rotation_period) || 0,
+    orbital_period: Number(p.orbital_period) || 0,
+    diameter: Number(p.diameter) || 0,
+    surface_water: Number(p.surface_water) || 0,
+    population: Number(p.population) || 0,
+    url: (p as any).url || "" 
+  }));
+}
+
+function sanitizePeople(people: StarWarsPeopleResponse["results"]) {
+  return people.map(p => ({
+    name: p.name,
+    height: Number(p.height) || 0,
+    mass: Number(p.mass) || 0,
+    homeworld: p.homeworld
+  }));
+}
+
+function sanitizePokemons(pokemons: PokemonResponse["results"]) {
+  return pokemons.map(p => ({
+    name: p.name,
+    base_experience: Number(p.base_experience) || 0,
+    height: Number(p.height) || 0,
+    weight: Number(p.weight) || 0,
+  }));
 }
 
 export class OpenAIService {
@@ -16,31 +48,35 @@ export class OpenAIService {
     }
   ) {
     try {
-      // Log del contexto para debugging
       console.log("🔥 Contexto completo recibido:");
       
       // Extraer solo los campos relevantes de todos los datos
-      const planetas = context.planets.results.map(p => ({
-        nombre: p.name,
-        periodo_rotacion: p.rotation_period,
-        periodo_orbital: p.orbital_period,
-        diametro: p.diameter,
-        agua_superficial: p.surface_water,
-        poblacion: p.population
+      const planetas = context.planets.results.map((p: Planet) => ({
+        name: p.name,
+        rotation_period: p.rotation_period,
+        orbital_period: p.orbital_period,
+        diameter: p.diameter,
+        surface_water: p.surface_water,
+        population: p.population
       }));
       
-      const personajes = context.people.results.map(p => ({
-        nombre: p.name,
-        altura: p.height,
-        masa: p.mass,
-        planeta_natal: p.homeworld
+      
+      const planetNameMap = new Map(
+        context.planets.results.map((p: Planet) => [p.url, p.name])
+      );
+      
+      const personajes = context.people.results.map((p: People) => ({
+        name: p.name,
+        height: p.height,
+        mass: p.mass,
+        homeworld: planetNameMap.get(p.homeworld) || p.homeworld 
       }));
       
-      const pokemons = context.pokemon.results.map(p => ({
-        nombre: p.name,
-        altura: p.height,
-        peso: p.weight,
-        experiencia_base: p.base_experience
+      const pokemons = context.pokemon.results.map((p: any) => ({
+        name: p.name,
+        base_experience: p.base_experience,
+        height: p.height,
+        weight: p.weight
       }));
 
       console.log("Planetas:", planetas);
